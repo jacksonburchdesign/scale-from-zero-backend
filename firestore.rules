@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isMember(projectData) {
+      return isAuthenticated() && (
+        projectData.ownerId == request.auth.uid || 
+        projectData.members[request.auth.uid] != null
+      );
+    }
+    function isOwner(projectData) {
+      return isAuthenticated() && (
+        projectData.ownerId == request.auth.uid || 
+        projectData.members[request.auth.uid] == 'owner'
+      );
+    }
+
+    match /projects/{projectId} {
+      // Anyone in members map (or legacy owner) can read
+      allow read: if isMember(resource.data);
+      
+      // Creating requires setting yourself as owner
+      allow create: if isAuthenticated() && 
+        request.resource.data.members[request.auth.uid] == 'owner';
+        
+      // Only owners can update project settings
+      allow update, delete: if isOwner(resource.data);
+
+      match /changelogs/{changelogId} {
+        // Members can read changelogs
+        allow read: if isMember(get(/databases/$(database)/documents/projects/$(projectId)).data);
+        
+        // Members can create/edit changelogs (e.g. hitting publish)
+        allow write: if isMember(get(/databases/$(database)/documents/projects/$(projectId)).data);
+      }
+    }
+
+    match /invites/{inviteId} {
+      // Only cloud functions manage invites in MVP, so we can lock this down
+      allow read, write: if false; 
+    }
+  }
+}
