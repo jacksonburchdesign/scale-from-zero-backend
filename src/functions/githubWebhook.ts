@@ -64,8 +64,15 @@ export const githubWebhook = onRequest({ secrets: [githubSecret] }, async (req, 
     return;
   }
 
-  // Extract commit messages
-  const commitMessages = commits.map((c: any) => c.message).join("\n- ");
+  // Extract sfz commit messages
+  const sfzCommits = commits.filter((c: any) => c.message?.toLowerCase().startsWith("sfz:"));
+  
+  if (sfzCommits.length === 0) {
+    res.status(200).send("Ignored: No sfz: commits found");
+    return;
+  }
+
+  const rawCommits = sfzCommits.map((c: any) => c.message.substring(4).trim()).join("\n- ");
   
   // Find project in Firestore
   const db = getFirestore();
@@ -83,39 +90,59 @@ export const githubWebhook = onRequest({ secrets: [githubSecret] }, async (req, 
   const projectId = projectDoc.id;
   const ownerId = projectDoc.data().ownerId;
 
+  let aiTechnicalSummary = "Code update pushed.";
+  let aiNonTechnicalSummary = "A new update was pushed to the repository.";
+  let themeCategory = "Feature";
+
   // Process with Vertex AI
   try {
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
       model: "gemini-1.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
     });
 
     const prompt = `
-      You are an expert product marketer communicating to investors and non-technical stakeholders.
-      Rewrite the following rough developer changelog into a polished, positive, high-conversion summary.
-      Focus on business value, traction, and user momentum.
-      Keep it brief, under 65 characters per line if possible, and highly legible.
-      
-      Raw Changelog:
-      - ${commitMessages}
+      You are an expert product marketer and lead engineer. 
+      Analyze the following developer commit messages and output a JSON object containing three fields:
+      - "technicalSummary": A professional, developer-focused summary of the changes.
+      - "nonTechnicalSummary": A high-level, business-value summary for recruiters or investors.
+      - "themeCategory": Categorize the update into exactly one of these strings: "Feature", "Fix", "Polish", "Infra", "Security".
+
+      Raw Commits:
+      ${rawCommits}
     `;
 
     const result = await generativeModel.generateContent(prompt);
     const response = await result.response;
-    const aiText = response.candidates?.[0]?.content?.parts?.[0]?.text || "Update from recent code pushes.";
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-    // Save to Firestore as a draft
-    await db.collection("projects").doc(projectId).collection("changelogs").add({
-      status: "draft",
-      content: aiText,
-      rawCommits: commitMessages,
-      createdAt: new Date(),
-      ownerId: ownerId, // Important for security rules if they check owner
-    });
-
-    res.status(200).send("Changelog draft created");
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.technicalSummary) aiTechnicalSummary = parsed.technicalSummary;
+      if (parsed.nonTechnicalSummary) aiNonTechnicalSummary = parsed.nonTechnicalSummary;
+      if (parsed.themeCategory) themeCategory = parsed.themeCategory;
+    } catch (e) {
+      logger.error("Failed to parse JSON from Vertex AI", e, text);
+    }
   } catch (error) {
-    logger.error("AI Generation or DB Error:", error);
-    res.status(500).send("Failed to generate AI changelog");
+    logger.error("Vertex AI Error:", error);
   }
+
+  // Save to Firestore as a draft
+  await db.collection("projects").doc(projectId).collection("changelogs").add({
+    status: "draft",
+    technicalSummary: aiTechnicalSummary,
+    nonTechnicalSummary: aiNonTechnicalSummary,
+    themeCategory: themeCategory,
+    rawCommit: rawCommits,
+    createdAt: new Date(),
+    ownerId: ownerId,
+  });
+
+  res.status(200).send("Changelog draft created from GitHub push");
+} catch (error) {
+  logger.error("Error processing github webhook:", error);
+  res.status(500).send("Internal Error");
+}
 });

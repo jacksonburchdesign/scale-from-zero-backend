@@ -56,16 +56,69 @@ export const vercelWebhook = onRequest({ secrets: [vercelSecret] }, async (req, 
     return;
   }
 
-  const deploymentUrl = payload.payload?.url;
-  const projectName = payload.payload?.name;
+  const deploymentUrl = payload.payload?.url || payload.payload?.deployment?.url || "";
+  const target = payload.payload?.target || payload.payload?.deployment?.target || "production";
+  const deploymentId = payload.payload?.deployment?.id || "unknown";
+  const githubCommitMessage = payload.payload?.deployment?.meta?.githubCommitMessage || "";
+  
+  if (!githubCommitMessage.toLowerCase().startsWith("sfz:")) {
+    res.status(200).send("Ignored: Commit does not have sfz: prefix");
+    return;
+  }
+
+  const rawCommit = githubCommitMessage.substring(4).trim();
+
+  let aiTechnicalSummary = "Update deployed successfully.";
+  let aiNonTechnicalSummary = "We just shipped a new update!";
+  let themeCategory = "Feature";
+
+  try {
+    // We dynamically import VertexAI if we need to avoid heavy top-level imports, but let's just require it since we're in the webhook
+    const { VertexAI } = require("@google-cloud/vertexai");
+    const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
+    const generativeModel = vertexAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    const prompt = `
+      You are an expert product marketer and lead engineer. 
+      Analyze the following developer commit message and output a JSON object containing three fields:
+      - "technicalSummary": A professional, developer-focused summary of the change.
+      - "nonTechnicalSummary": A high-level, business-value summary for recruiters or investors.
+      - "themeCategory": Categorize the update into exactly one of these strings: "Feature", "Fix", "Polish", "Infra", "Security".
+
+      Raw Commit:
+      ${rawCommit}
+    `;
+
+    const result = await generativeModel.generateContent(prompt);
+    const response = await result.response;
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.technicalSummary) aiTechnicalSummary = parsed.technicalSummary;
+      if (parsed.nonTechnicalSummary) aiNonTechnicalSummary = parsed.nonTechnicalSummary;
+      if (parsed.themeCategory) themeCategory = parsed.themeCategory;
+    } catch (e) {
+      logger.error("Failed to parse JSON from Vertex AI", e, text);
+    }
+  } catch (error) {
+    logger.error("Vertex AI Error:", error);
+  }
 
   // Save draft changelog
   await db.collection("projects").doc(projectId).collection("changelogs").add({
     status: "draft",
-    content: `Vercel Deployment Successful: A new version of ${projectName || "the app"} is live!\n\nCheck it out here: https://${deploymentUrl}`,
-    rawCommits: `Deployment ID: ${payload.payload?.id}\nTarget: ${payload.payload?.target}`,
+    technicalSummary: aiTechnicalSummary,
+    nonTechnicalSummary: aiNonTechnicalSummary,
+    themeCategory: themeCategory,
+    rawCommit: rawCommit,
+    deploymentUrl: deploymentUrl,
+    vercelStatus: "Success",
     createdAt: new Date(),
-    ownerId: projectSnap.data()?.ownerId // For backwards compatibility
+    ownerId: projectSnap.data()?.ownerId
   });
 
   // Update project doc with lastVercelDeploy for UI status
@@ -73,5 +126,5 @@ export const vercelWebhook = onRequest({ secrets: [vercelSecret] }, async (req, 
     lastVercelDeploy: new Date()
   });
 
-  res.status(200).send("Vercel deployment logged as draft");
+  res.status(200).send("Vercel deployment processed and AI changelog generated");
 });
