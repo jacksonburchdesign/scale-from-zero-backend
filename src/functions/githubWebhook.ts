@@ -8,8 +8,9 @@ import * as logger from "firebase-functions/logger";
 const githubSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
 
 export const githubWebhook = onRequest({ secrets: [githubSecret] }, async (req, res) => {
-  // Only accept POST requests
-  if (req.method !== "POST") {
+  try {
+    // Only accept POST requests
+    if (req.method !== "POST") {
     res.status(405).send("Method Not Allowed");
     return;
   }

@@ -57,8 +57,6 @@ export const vercelWebhook = onRequest({ secrets: [vercelSecret] }, async (req, 
   }
 
   const deploymentUrl = payload.payload?.url || payload.payload?.deployment?.url || "";
-  const target = payload.payload?.target || payload.payload?.deployment?.target || "production";
-  const deploymentId = payload.payload?.deployment?.id || "unknown";
   const githubCommitMessage = payload.payload?.deployment?.meta?.githubCommitMessage || "";
   
   if (!githubCommitMessage.toLowerCase().startsWith("sfz:")) {
