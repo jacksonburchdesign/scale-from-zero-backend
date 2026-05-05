@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
-import { VertexAI } from "@google-cloud/vertexai";
+
 import * as logger from "firebase-functions/logger";
 
 export const compileDailyChangelog = onCall(async (request) => {
@@ -48,6 +48,7 @@ export const compileDailyChangelog = onCall(async (request) => {
   let themeCategory = "Feature";
 
   try {
+    const { VertexAI } = require("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
       model: "gemini-1.5-flash",

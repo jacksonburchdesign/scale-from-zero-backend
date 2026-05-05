@@ -8,5 +8,6 @@ import { acceptInvite } from "./functions/acceptInvite.js";
 initializeApp();
 
 import { compileDailyChangelog } from "./functions/compileDailyChangelog.js";
+import { generateProjectProfile } from "./functions/generateProjectProfile.js";
 
-export { formatChangelogWithAI, githubWebhook, vercelWebhook, generateInvite, acceptInvite, compileDailyChangelog };
+export { formatChangelogWithAI, githubWebhook, vercelWebhook, generateInvite, acceptInvite, compileDailyChangelog, generateProjectProfile };

@@ -2,7 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getFirestore } from "firebase-admin/firestore";
 import { verify } from "@octokit/webhooks-methods";
-import { VertexAI } from "@google-cloud/vertexai";
+
 import * as logger from "firebase-functions/logger";
 
 const githubSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
@@ -97,6 +97,7 @@ export const githubWebhook = onRequest({ secrets: [githubSecret] }, async (req, 
 
   // Process with Vertex AI
   try {
+    const { VertexAI } = require("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
       model: "gemini-1.5-flash",
