@@ -9,5 +9,6 @@ initializeApp();
 
 import { compileDailyChangelog } from "./functions/compileDailyChangelog.js";
 import { generateProjectProfile } from "./functions/generateProjectProfile.js";
+import { githubAppWebhook } from "./functions/githubAppWebhook.js";
 
-export { formatChangelogWithAI, githubWebhook, vercelWebhook, generateInvite, acceptInvite, compileDailyChangelog, generateProjectProfile };
+export { formatChangelogWithAI, githubAppWebhook, vercelWebhook, generateInvite, acceptInvite, compileDailyChangelog, generateProjectProfile };
