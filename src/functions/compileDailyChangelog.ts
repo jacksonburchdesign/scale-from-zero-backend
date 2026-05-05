@@ -48,7 +48,7 @@ export const compileDailyChangelog = onCall(async (request) => {
   let themeCategory = "Feature";
 
   try {
-    const { VertexAI } = require("@google-cloud/vertexai");
+    const { VertexAI } = await import("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
       model: "gemini-1.5-flash",

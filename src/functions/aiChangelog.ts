@@ -17,7 +17,7 @@ export const formatChangelogWithAI = onCall(async (request) => {
 
   try {
     // VertexAI config (project details to be injected via environment or config)
-    const { VertexAI } = require("@google-cloud/vertexai");
+    const { VertexAI } = await import("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
       model: "gemini-1.5-flash",

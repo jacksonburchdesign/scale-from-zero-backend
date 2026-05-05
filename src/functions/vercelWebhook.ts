@@ -72,7 +72,7 @@ export const vercelWebhook = onRequest({ secrets: [vercelSecret] }, async (req, 
 
   try {
     // We dynamically import VertexAI if we need to avoid heavy top-level imports, but let's just require it since we're in the webhook
-    const { VertexAI } = require("@google-cloud/vertexai");
+    const { VertexAI } = await import("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
       model: "gemini-1.5-flash",
