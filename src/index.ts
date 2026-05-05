@@ -11,5 +11,6 @@ import { compileDailyChangelog } from "./functions/compileDailyChangelog.js";
 import { generateProjectProfile } from "./functions/generateProjectProfile.js";
 import { githubAppWebhook } from "./functions/githubAppWebhook.js";
 import { generateDailyChangelog } from "./functions/generateDailyChangelog.js";
+import { fetchInitialCommits } from "./functions/fetchInitialCommits.js";
 
-export { formatChangelogWithAI, githubAppWebhook, vercelWebhook, generateInvite, acceptInvite, compileDailyChangelog, generateProjectProfile, generateDailyChangelog };
+export { formatChangelogWithAI, githubAppWebhook, vercelWebhook, generateInvite, acceptInvite, compileDailyChangelog, generateProjectProfile, generateDailyChangelog, fetchInitialCommits };

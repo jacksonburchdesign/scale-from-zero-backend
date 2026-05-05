@@ -55,7 +55,7 @@ export const generateDailyChangelog = onCall({ timeoutSeconds: 120, memory: '512
     const { VertexAI } = await import("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -69,7 +69,7 @@ export const generateDailyChangelog = onCall({ timeoutSeconds: 120, memory: '512
       {
         "isTrivial": boolean,
         "technicalSummary": "A detailed, professional, developer-focused summary of the architecture or code changes across all commits (3-5 sentences). Avoid generic phrases.",
-        "nonTechnicalSummary": "A high-level, business-value summary for non-technical users that avoids technical jargon (2-3 sentences). Focus on what value was created today.",
+        "nonTechnicalSummary": "A high-level, highly scannable business-value summary for investors, marketers, and recruiters. Format the output STRICTLY in Markdown. Start with a single catchy headline featuring an appropriate emoji. Follow this with 1 to 3 concise bullet points highlighting the business impact, traction, and value created. Bold the most important keywords.",
         "themeCategory": "Must be EXACTLY one of: Feature, Fix, Polish, Infra, Security"
       }
 

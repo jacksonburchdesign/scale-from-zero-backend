@@ -20,14 +20,15 @@ export const formatChangelogWithAI = onCall(async (request) => {
     const { VertexAI } = await import("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-pro",
     });
 
     const prompt = `
       You are an expert product marketer communicating to investors and non-technical stakeholders.
       Rewrite the following rough developer changelog into a polished, positive, high-conversion summary.
-      Focus on business value, traction, and user momentum.
-      Keep it brief, under 65 characters per line if possible, and highly legible.
+      Format the output STRICTLY in Markdown. Start with a single catchy headline featuring an appropriate emoji.
+      Follow this with 1 to 3 concise bullet points highlighting the business impact, traction, and value created.
+      Bold the most important keywords to draw the eye.
       
       Raw Changelog:
       ${rawText}

@@ -56,7 +56,7 @@ export const generateProjectProfile = onCall({ timeoutSeconds: 60, memory: '512M
     const { VertexAI } = await import("@google-cloud/vertexai");
     const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
     const generativeModel = vertexAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
 
