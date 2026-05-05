@@ -105,10 +105,14 @@ export const githubWebhook = onRequest({ secrets: [githubSecret] }, async (req, 
 
     const prompt = `
       You are an expert product marketer and lead engineer. 
-      Analyze the following developer commit messages and output a JSON object containing three fields:
-      - "technicalSummary": A professional, developer-focused summary of the changes.
-      - "nonTechnicalSummary": A high-level, business-value summary for recruiters or investors.
-      - "themeCategory": Categorize the update into exactly one of these strings: "Feature", "Fix", "Polish", "Infra", "Security".
+      Analyze the following developer commit messages.
+      
+      Respond STRICTLY with a valid JSON object matching this exact schema:
+      {
+        "technicalSummary": "A detailed, professional, developer-focused summary of the architecture or code changes (2-4 sentences). Avoid generic phrases.",
+        "nonTechnicalSummary": "A high-level, business-value summary for non-technical users, recruiters or investors that avoids technical jargon (2-3 sentences). Focus on what value was created.",
+        "themeCategory": "Must be EXACTLY one of: Feature, Fix, Polish, Infra, Security"
+      }
 
       Raw Commits:
       ${rawCommits}

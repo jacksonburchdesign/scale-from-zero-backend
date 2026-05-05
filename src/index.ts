@@ -7,4 +7,6 @@ import { acceptInvite } from "./functions/acceptInvite.js";
 
 initializeApp();
 
-export { formatChangelogWithAI, githubWebhook, vercelWebhook, generateInvite, acceptInvite };
+import { compileDailyChangelog } from "./functions/compileDailyChangelog.js";
+
+export { formatChangelogWithAI, githubWebhook, vercelWebhook, generateInvite, acceptInvite, compileDailyChangelog };
