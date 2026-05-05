@@ -81,73 +81,13 @@ export const githubAppWebhook = onRequest({ secrets: [githubSecret] }, async (re
       return;
     }
 
-    let aiTechnicalSummary = "Code update pushed.";
-    let aiNonTechnicalSummary = "A new update was pushed to the repository.";
-    let themeCategory = "Feature";
-    let isTrivial = false;
-
-    // Process with Vertex AI
-    try {
-      const { VertexAI } = await import("@google-cloud/vertexai");
-      const vertexAI = new VertexAI({ project: process.env.GCLOUD_PROJECT || "scale-from-zero", location: "us-central1" });
-      const generativeModel = vertexAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        generationConfig: { responseMimeType: "application/json" }
-      });
-
-      const prompt = `
-        You are an expert product marketer and lead engineer analyzing commit messages.
-        Determine if the push contains meaningful updates or just trivial changes (like "typo fix", "merge main", "bump dependencies").
-        If the commits are entirely trivial, set "isTrivial" to true.
-        Otherwise, synthesize the meaningful commits.
-        
-        Respond STRICTLY with a valid JSON object matching this exact schema:
-        {
-          "isTrivial": boolean,
-          "technicalSummary": "A detailed, professional, developer-focused summary of the architecture or code changes (2-4 sentences). Avoid generic phrases. (Leave empty if trivial)",
-          "nonTechnicalSummary": "A high-level, business-value summary for non-technical users that avoids technical jargon (2-3 sentences). Focus on what value was created. (Leave empty if trivial)",
-          "themeCategory": "Must be EXACTLY one of: Feature, Fix, Polish, Infra, Security"
-        }
-
-        Raw Commits:
-        - ${rawCommits}
-      `;
-
-      const result = await generativeModel.generateContent(prompt);
-      const response = await result.response;
-      const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-
-      try {
-        const parsed = JSON.parse(text);
-        if (parsed.isTrivial) {
-          isTrivial = true;
-        } else {
-          if (parsed.technicalSummary) aiTechnicalSummary = parsed.technicalSummary;
-          if (parsed.nonTechnicalSummary) aiNonTechnicalSummary = parsed.nonTechnicalSummary;
-          if (parsed.themeCategory) themeCategory = parsed.themeCategory;
-        }
-      } catch (e) {
-        logger.error("Failed to parse JSON from Vertex AI", e, text);
-      }
-    } catch (error) {
-      logger.error("Vertex AI Error:", error);
-    }
-
-    if (isTrivial) {
-      res.status(200).send("Ignored: Commits were trivial");
-      return;
-    }
-
     // Save to Firestore as a draft for all associated projects
     for (const doc of snapshot.docs) {
       const projectId = doc.id;
       const ownerId = doc.data().ownerId;
 
       await db.collection("projects").doc(projectId).collection("changelogs").add({
-        status: "draft",
-        technicalSummary: aiTechnicalSummary,
-        nonTechnicalSummary: aiNonTechnicalSummary,
-        themeCategory: themeCategory,
+        status: "raw-commit",
         rawCommit: rawCommits,
         createdAt: new Date(),
         ownerId: ownerId,
@@ -155,7 +95,7 @@ export const githubAppWebhook = onRequest({ secrets: [githubSecret] }, async (re
       });
     }
 
-    res.status(200).send("Changelog draft created from GitHub push");
+    res.status(200).send("Raw commits saved to project changelogs");
   } catch (error) {
     logger.error("Error processing github webhook:", error);
     res.status(500).send("Internal Error");
